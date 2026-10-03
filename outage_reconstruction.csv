@@ -1,0 +1,3 @@
+,Linear interpolation (two-sided; stress test),Previous-week same-hour (causal)
+Reconstruction MAE (kW),343.22,35.607
+Reconstruction RMSE (kW),370.311,42.244

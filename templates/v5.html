@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Load Planning Assistant - Budget & Cost Module</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); }
+        .metric-value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+        .metric-label { font-size: 0.875rem; font-weight: 500; color: #64748b; }
+        
+        /* Styled Input Elements */
+        .styled-input {
+            width: 100%; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px;
+            font-size: 13px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05); outline: none;
+            transition: all 0.2s;
+        }
+        .styled-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900">JIGNASA 2026 - Budget & Cost Planning</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-2 text-xs font-bold tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                579-FEATURE PIPELINE ACTIVE
+            </span>
+        </div>
+    </header>
+
+    <div class="flex flex-1 max-w-[1600px] w-full mx-auto p-6 gap-6">
+        
+        <!-- Sidebar Controls -->
+        <aside class="w-80 flex flex-col gap-6 shrink-0">
+            
+            <div class="card p-5">
+                <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Forecast Origin</h3>
+                <div class="flex flex-col gap-3 mb-4">
+                    <label class="text-xs font-semibold text-gray-700">Select Date</label>
+                    <input id="inp_date" type="date" class="styled-input" onclick="if(this.showPicker) this.showPicker();">
+                </div>
+                <button onclick="fetchData(false)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-md py-2.5 transition-colors shadow-sm">
+                    Run Baseline Inference
+                </button>
+            </div>
+
+            <div class="card p-5 bg-gray-50/50">
+                <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Budget Configuration</h3>
+                <div class="flex flex-col gap-3 text-sm">
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Tariff (₹/kWh)</label>
+                        <input id="cfg_tariff" type="number" step="0.1" value="8.5" class="styled-input w-24 text-right">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Daily Energy (kWh)</label>
+                        <input id="cfg_budget_en" type="number" value="13000" class="styled-input w-24 text-right">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Daily Cost (₹)</label>
+                        <input id="cfg_budget_cost" type="number" value="110000" class="styled-input w-24 text-right">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Warning Threshold %</label>
+                        <input id="cfg_warning_pct" type="number" value="90" class="styled-input w-24 text-right">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-5 border-indigo-200 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-4 border-b pb-2">What-If Scenario</h3>
+                <p class="text-xs text-gray-500 mb-4">Modify variables and rerun pipeline to test cost-saving strategies.</p>
+                <div class="flex flex-col gap-3 mb-4 text-sm">
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Exam Period</label>
+                        <select id="wi_exam" class="styled-input w-24">
+                            <option value="0">No</option><option value="1">Yes</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Academic Occ.</label>
+                        <input id="wi_acad" type="number" value="50" class="styled-input w-24 text-right">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="font-medium text-gray-700">Hostel Occ.</label>
+                        <input id="wi_hostel" type="number" value="40" class="styled-input w-24 text-right">
+                    </div>
+                </div>
+                <button onclick="fetchData(true)" class="w-full bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-semibold text-sm rounded-md py-2.5 transition-colors shadow-sm">
+                    Simulate What-If
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="flex-1 flex flex-col gap-6 min-w-0 relative">
+            
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-xl hidden">
+                <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                <div class="font-semibold text-indigo-900">Running Deep Learning Inference...</div>
+            </div>
+
+            <!-- Summary Metrics Cards -->
+            <div class="grid grid-cols-4 gap-4">
+                <div class="card p-4 flex flex-col justify-between">
+                    <span class="metric-label">Predicted Energy</span>
+                    <span id="met_energy" class="metric-value">-- kWh</span>
+                    <div class="mt-2 text-xs font-semibold px-2 py-1 rounded bg-gray-100 w-max" id="met_en_status">-- % Utilized</div>
+                </div>
+                <div class="card p-4 flex flex-col justify-between">
+                    <span class="metric-label">Estimated Cost</span>
+                    <span id="met_cost" class="metric-value">₹ --</span>
+                    <div class="mt-2 text-xs font-semibold px-2 py-1 rounded bg-gray-100 w-max" id="met_cost_status">-- % Utilized</div>
+                </div>
+                <div class="card p-4 flex flex-col justify-between">
+                    <span class="metric-label">Predicted Peak Load</span>
+                    <div class="flex items-baseline gap-2">
+                        <span id="met_peak" class="metric-value">-- kW</span>
+                        <span id="met_time" class="text-sm font-semibold text-gray-500">--:--</span>
+                    </div>
+                    <div class="mt-2 text-xs font-medium text-gray-500 flex items-center gap-1">
+                        <svg class="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Threshold: 994.4 kW
+                    </div>
+                </div>
+                <div class="card p-4 flex flex-col justify-between" id="card_risk">
+                    <span class="metric-label">Budget Status</span>
+                    <span id="met_risk" class="metric-value text-xl mt-1">PENDING</span>
+                    <span id="met_rem" class="text-xs font-semibold mt-1">Run inference</span>
+                </div>
+            </div>
+
+            <!-- Planning Insights Banner -->
+            <div id="insight_banner" class="card p-4 bg-gray-50 border-gray-200">
+                <h3 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Planning Insights
+                </h3>
+                <p id="insight_text" class="text-sm text-gray-600">Enter a forecast date and run the baseline model to generate automated insights.</p>
+            </div>
+
+            <!-- Chart -->
+            <div class="card flex-1 flex flex-col p-4 relative min-h-[400px]">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <h2 class="text-sm font-bold text-gray-800">24-Hour Forecast Sequence</h2>
+                    <div class="flex gap-4 text-xs font-medium text-gray-500">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-blue-600"></span> Baseline Forecast</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-amber-500 border border-dashed border-amber-500"></span> What-If Scenario</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-red-400 border-b border-dashed border-red-400"></span> Peak Threshold</div>
+                    </div>
+                </div>
+                <div class="flex-1 relative w-full" id="chartWrapper">
+                    <svg id="loadChart" class="w-full h-full"></svg>
+                    <!-- Tooltip -->
+                    <div id="graphTooltip" class="absolute hidden flex-col pointer-events-none z-20 transition-all duration-75">
+                        <div class="absolute left-0 top-0 bottom-0 w-px bg-gray-400 opacity-50 -ml-px h-[500px] -mt-10"></div>
+                        <div class="bg-gray-900 text-white text-xs rounded-md px-3 py-2 shadow-xl -translate-x-1/2 -mt-14 w-max text-center relative border border-gray-700">
+                            <div class="font-medium text-gray-300 mb-0.5" id="ttTime">--</div>
+                            <div class="font-bold text-[13px] text-blue-400" id="ttValBase">Baseline: -- kW</div>
+                            <div class="font-bold text-[13px] text-amber-400 mt-0.5 hidden" id="ttValScen">Scenario: -- kW</div>
+                            <div class="absolute left-1/2 -bottom-1 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hourly Breakdown Table -->
+            <div class="card flex flex-col p-4 mb-4">
+                <h2 class="text-sm font-bold text-gray-800 mb-4">Hourly Forecast Breakdown</h2>
+                <div class="overflow-x-auto max-h-[300px] overflow-y-auto border border-gray-200 rounded-md">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead class="bg-gray-50 text-gray-600 font-semibold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="px-4 py-2">Time</th>
+                                <th class="px-4 py-2">Baseline Load (kW)</th>
+                                <th class="px-4 py-2 hidden" id="th_scenario">Scenario Load (kW)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table_body" class="divide-y divide-gray-100">
+                            <!-- Rows populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        let baselineData = null;
+        let scenarioData = null;
+        let chartWidth, chartHeight;
+        let padX = 40, padY = 20, maxX = 23;
+        const PEAK_THRESHOLD = 994.4;
+
+        async function fetchData(isWhatIf) {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingOverlay').classList.add('flex');
+            
+            try {
+                let payload = {
+                    forecast_date: document.getElementById('inp_date').value,
+                    is_exam: parseInt(document.getElementById('wi_exam').value) // By default uses the WhatIf inputs
+                };
+                
+                // If Baseline, don't send overrides.
+                if (!isWhatIf) {
+                    payload.is_exam = 0; // Default baseline assumption or read from separate input
+                } else {
+                    payload.academic_occupancy = parseFloat(document.getElementById('wi_acad').value);
+                    payload.hostel_occupancy = parseFloat(document.getElementById('wi_hostel').value);
+                }
+
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (isWhatIf) {
+                        scenarioData = data;
+                    } else {
+                        baselineData = data;
+                        scenarioData = null; // Clear scenario on new baseline
+                    }
+                    updateUI();
+                } else {
+                    alert('Backend error: ' + data.error);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Failed to reach backend.');
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                document.getElementById('loadingOverlay').classList.remove('flex');
+            }
+        }
+
+        function updateUI() {
+            if (!baselineData) return;
+            
+            // Read configuration
+            const tariff = parseFloat(document.getElementById('cfg_tariff').value) || 8.5;
+            const b_en = parseFloat(document.getElementById('cfg_budget_en').value) || 13000;
+            const b_cost = parseFloat(document.getElementById('cfg_budget_cost').value) || 110000;
+            const warn_pct = parseFloat(document.getElementById('cfg_warning_pct').value) || 90;
+
+            // Compute active metrics (Scenario if exists, else Baseline)
+            const activeData = scenarioData || baselineData;
+            const preds = activeData.predictions;
+            
+            const totalEn = preds.reduce((a, b) => a + b, 0);
+            const totalCost = totalEn * tariff;
+            
+            const peakLoad = Math.max(...preds);
+            const peakIdx = preds.indexOf(peakLoad);
+            const peakTimeLabel = activeData.labels[peakIdx];
+            
+            // Render basic metrics
+            document.getElementById('met_energy').innerText = totalEn.toLocaleString(undefined, {maximumFractionDigits:0}) + ' kWh';
+            document.getElementById('met_cost').innerText = '₹ ' + totalCost.toLocaleString(undefined, {maximumFractionDigits:0});
+            document.getElementById('met_peak').innerText = Math.round(peakLoad) + ' kW';
+            
+            const d = new Date(peakTimeLabel.replace(' ', 'T'));
+            document.getElementById('met_time').innerText = d.getHours().toString().padStart(2, '0') + ':00';
+
+            // Utilization
+            const u_en = (totalEn / b_en) * 100;
+            const u_cost = (totalCost / b_cost) * 100;
+            const max_u = Math.max(u_en, u_cost);
+
+            // Badges
+            document.getElementById('met_en_status').innerText = `${u_en.toFixed(1)}% Utilized`;
+            document.getElementById('met_cost_status').innerText = `${u_cost.toFixed(1)}% Utilized`;
+            
+            // Status Logic
+            const riskCard = document.getElementById('card_risk');
+            const riskText = document.getElementById('met_risk');
+            const riskRem = document.getElementById('met_rem');
+            const insightBanner = document.getElementById('insight_banner');
+            const insightText = document.getElementById('insight_text');
+            
+            // Reset styles
+            riskCard.className = 'card p-4 flex flex-col justify-between border-l-4';
+            insightBanner.className = 'card p-4 border-l-4';
+            
+            let hoursHigh = preds.filter(p => p >= PEAK_THRESHOLD).length;
+            let contextStr = `Forecast Context: Working Day=${activeData.calendar_context.is_working_day}, Weekend=${activeData.calendar_context.is_weekend}. Avg Temp: ${activeData.weather[0].temp.toFixed(1)}°C. `;
+
+            if (max_u > 100) {
+                // EXCEEDED
+                riskCard.classList.add('border-l-red-500', 'bg-red-50');
+                riskText.innerText = 'EXCEEDED';
+                riskText.className = 'metric-value text-red-600 mt-1';
+                riskRem.innerText = `Excess: ₹${(totalCost - b_cost).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+                riskRem.className = 'text-xs font-bold text-red-600 mt-1';
+                
+                insightBanner.classList.add('border-l-red-500', 'bg-red-50');
+                insightText.innerHTML = `<strong class="text-red-700">Critical: Budget limits exceeded!</strong> Utilization is at ${max_u.toFixed(1)}%. <br>
+                Peak load of ${Math.round(peakLoad)}kW occurs at ${d.getHours()}:00, and demand stays very high for ${hoursHigh} hours. <br>
+                ${contextStr}<br>
+                <strong>Recommendation:</strong> Use the What-If module to explore reducing academic or hostel occupancy during peak hours.`;
+                
+            } else if (max_u >= warn_pct) {
+                // NEAR LIMIT
+                riskCard.classList.add('border-l-yellow-500', 'bg-yellow-50');
+                riskText.innerText = 'NEAR LIMIT';
+                riskText.className = 'metric-value text-yellow-600 mt-1';
+                riskRem.innerText = `Remaining: ₹${(b_cost - totalCost).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+                riskRem.className = 'text-xs font-bold text-yellow-700 mt-1';
+                
+                insightBanner.classList.add('border-l-yellow-500', 'bg-yellow-50');
+                insightText.innerHTML = `<strong class="text-yellow-700">Warning: Approaching Budget Limit.</strong> Utilization is at ${max_u.toFixed(1)}%. <br>
+                Peak demand spikes at ${d.getHours()}:00. ${contextStr}<br>
+                <strong>Recommendation:</strong> Review flexible high-load activities during predicted peak periods to avoid exceeding the budget.`;
+            } else {
+                // COMFORTABLE
+                riskCard.classList.add('border-l-emerald-500', 'bg-emerald-50');
+                riskText.innerText = 'COMFORTABLE';
+                riskText.className = 'metric-value text-emerald-600 mt-1';
+                riskRem.innerText = `Remaining: ₹${(b_cost - totalCost).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+                riskRem.className = 'text-xs font-bold text-emerald-700 mt-1';
+                
+                insightBanner.classList.add('border-l-emerald-500', 'bg-emerald-50');
+                insightText.innerHTML = `<strong class="text-emerald-700">All Systems Nominal.</strong> Energy and cost are within expected operational budgets. (${max_u.toFixed(1)}% utilized).<br>
+                ${contextStr}`;
+            }
+
+            // Scenario Comparison Addition
+            if (scenarioData) {
+                const bEn = baselineData.predictions.reduce((a, b) => a + b, 0);
+                const bCost = bEn * tariff;
+                const diffEn = totalEn - bEn;
+                const diffCost = totalCost - bCost;
+                
+                const sign = diffCost > 0 ? '+' : '';
+                const color = diffCost > 0 ? 'text-red-600' : 'text-emerald-600';
+                
+                insightText.innerHTML += `<div class="mt-3 p-3 bg-white border border-gray-200 rounded-md">
+                    <strong>What-If Analysis Result:</strong><br>
+                    Scenario changes overall cost by <span class="${color} font-bold">${sign}₹${diffCost.toLocaleString(undefined, {maximumFractionDigits:0})}</span> 
+                    (${sign}${diffEn.toLocaleString(undefined, {maximumFractionDigits:0})} kWh).
+                </div>`;
+            }
+
+            drawChart();
+            updateTable();
+        }
+
+        function updateTable() {
+            if (!baselineData) return;
+            const tbody = document.getElementById('table_body');
+            const thScen = document.getElementById('th_scenario');
+            
+            tbody.innerHTML = '';
+            if (scenarioData) {
+                thScen.classList.remove('hidden');
+            } else {
+                thScen.classList.add('hidden');
+            }
+
+            for (let i = 0; i < 24; i++) {
+                const timeLabel = baselineData.labels[i];
+                const bVal = Math.round(baselineData.predictions[i]);
+                let sValHTML = '';
+                
+                if (scenarioData) {
+                    const sVal = Math.round(scenarioData.predictions[i]);
+                    const diff = sVal - bVal;
+                    let diffClass = diff > 0 ? 'text-red-600' : (diff < 0 ? 'text-emerald-600' : 'text-gray-400');
+                    let diffStr = diff > 0 ? `+${diff}` : (diff < 0 ? `${diff}` : '0');
+                    sValHTML = `<td class="px-4 py-2 font-medium">${sVal} <span class="text-xs ml-2 ${diffClass}">(${diffStr})</span></td>`;
+                }
+
+                const rowBg = bVal >= PEAK_THRESHOLD ? 'bg-orange-50/50 text-orange-900' : '';
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition-colors ${rowBg}">
+                        <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">${timeLabel}</td>
+                        <td class="px-4 py-2 font-medium">${bVal}</td>
+                        ${sValHTML}
+                    </tr>
+                `;
+            }
+        }
+
+        function drawChart() {
+            if (!baselineData) return;
+            const svg = document.getElementById('loadChart');
+            const rect = svg.getBoundingClientRect();
+            chartWidth = rect.width || 800; chartHeight = rect.height || 350;
+            svg.innerHTML = ''; 
+            
+            const allY = [...baselineData.predictions];
+            if (scenarioData) allY.push(...scenarioData.predictions);
+            
+            const minY = Math.min(...allY) * 0.8;
+            let maxY = Math.max(...allY) * 1.1;
+            if (PEAK_THRESHOLD > maxY) maxY = PEAK_THRESHOLD * 1.05;
+            
+            const scaleX = (x) => padX + (x / maxX) * (chartWidth - 2 * padX);
+            const scaleY = (y) => chartHeight - padY - ((y - minY) / (maxY - minY)) * (chartHeight - 2 * padY);
+            
+            // Peak Zone Background
+            if (maxY > PEAK_THRESHOLD) {
+                const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                r.setAttribute('x', padX); r.setAttribute('y', 0);
+                r.setAttribute('width', chartWidth - 2 * padX); r.setAttribute('height', scaleY(PEAK_THRESHOLD));
+                r.setAttribute('fill', 'rgba(239, 68, 68, 0.03)'); 
+                svg.appendChild(r);
+                
+                const peakLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                peakLine.setAttribute('x1', padX); peakLine.setAttribute('y1', scaleY(PEAK_THRESHOLD));
+                peakLine.setAttribute('x2', chartWidth - padX); peakLine.setAttribute('y2', scaleY(PEAK_THRESHOLD));
+                peakLine.setAttribute('stroke', 'rgba(239, 68, 68, 0.5)'); peakLine.setAttribute('stroke-dasharray', '3 3');
+                svg.appendChild(peakLine);
+            }
+            
+            // Grid
+            for(let i=0; i<=5; i++) {
+                const val = minY + (i/5) * (maxY - minY);
+                const yPos = scaleY(val);
+                const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                gridLine.setAttribute('x1', padX); gridLine.setAttribute('y1', yPos);
+                gridLine.setAttribute('x2', chartWidth - padX); gridLine.setAttribute('y2', yPos);
+                gridLine.setAttribute('stroke', '#e2e8f0'); gridLine.setAttribute('stroke-dasharray', '2 4');
+                svg.appendChild(gridLine);
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', padX - 8); label.setAttribute('y', yPos + 3);
+                label.setAttribute('fill', '#64748b'); label.setAttribute('font-size', '10px'); label.setAttribute('text-anchor', 'end');
+                label.textContent = Math.round(val);
+                svg.appendChild(label);
+            }
+            
+            // Draw Baseline
+            let bPath = '';
+            baselineData.predictions.forEach((y, x) => {
+                bPath += `${x===0 ? 'M' : 'L'} ${scaleX(x)} ${scaleY(y)} `;
+                // Dot
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', scaleX(x)); circle.setAttribute('cy', scaleY(y));
+                circle.setAttribute('r', '3'); circle.setAttribute('fill', '#2563eb');
+                svg.appendChild(circle);
+            });
+            const bNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            bNode.setAttribute('d', bPath); bNode.setAttribute('stroke', '#2563eb'); bNode.setAttribute('stroke-width', '2.5'); bNode.setAttribute('fill', 'none');
+            svg.appendChild(bNode);
+            
+            // Draw Scenario
+            if (scenarioData) {
+                let sPath = '';
+                scenarioData.predictions.forEach((y, x) => {
+                    sPath += `${x===0 ? 'M' : 'L'} ${scaleX(x)} ${scaleY(y)} `;
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', scaleX(x)); circle.setAttribute('cy', scaleY(y));
+                    circle.setAttribute('r', '3.5'); circle.setAttribute('fill', '#f59e0b');
+                    svg.appendChild(circle);
+                });
+                const sNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                sNode.setAttribute('d', sPath); sNode.setAttribute('stroke', '#f59e0b'); sNode.setAttribute('stroke-width', '2.5'); sNode.setAttribute('stroke-dasharray', '6 4'); sNode.setAttribute('fill', 'none');
+                svg.appendChild(sNode);
+            }
+
+            // Hover
+            const wrapper = document.getElementById('chartWrapper');
+            const tooltip = document.getElementById('graphTooltip');
+            
+            wrapper.onmousemove = (e) => {
+                const mouseX = e.clientX - wrapper.getBoundingClientRect().left;
+                let rawX = ((mouseX - padX) / (chartWidth - 2 * padX)) * maxX;
+                let h = Math.max(0, Math.min(23, Math.round(rawX)));
+                
+                tooltip.style.left = scaleX(h) + 'px';
+                tooltip.style.top = scaleY(baselineData.predictions[h]) + 'px';
+                tooltip.classList.remove('hidden'); tooltip.classList.add('flex');
+                
+                document.getElementById('ttTime').innerText = baselineData.labels[h];
+                document.getElementById('ttValBase').innerText = `Baseline: ${Math.round(baselineData.predictions[h])} kW`;
+                
+                const scenEl = document.getElementById('ttValScen');
+                if (scenarioData) {
+                    scenEl.innerText = `Scenario: ${Math.round(scenarioData.predictions[h])} kW`;
+                    scenEl.classList.remove('hidden');
+                } else {
+                    scenEl.classList.add('hidden');
+                }
+            };
+            wrapper.onmouseleave = () => { tooltip.classList.add('hidden'); tooltip.classList.remove('flex'); };
+        }
+
+        window.addEventListener('resize', drawChart);
+        
+        // Initial fetch
+        const today = new Date();
+        document.getElementById('inp_date').value = today.toISOString().split('T')[0];
+        setTimeout(() => fetchData(false), 100);
+    </script>
+</body>
+</html>

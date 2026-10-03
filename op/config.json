@@ -1,0 +1,80 @@
+{
+  "peak_threshold_kw": 994.4020000000002,
+  "horizon": 24,
+  "hist_features": [
+    "load_now",
+    "load_lag_1",
+    "load_lag_24",
+    "load_lag_168",
+    "rolling_mean_24",
+    "rolling_mean_168",
+    "rolling_std_24"
+  ],
+  "current_features": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "is_weekend",
+    "is_holiday",
+    "is_working_day",
+    "activity_level",
+    "academic_occupancy",
+    "lecture_occupancy",
+    "library_occupancy",
+    "hostel_occupancy",
+    "mess_occupancy",
+    "is_exam",
+    "is_mid_sem",
+    "is_end_sem",
+    "is_pre_exam",
+    "is_post_exam"
+  ],
+  "future_features_per_hour": [
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "is_weekend",
+    "is_holiday",
+    "is_working_day",
+    "activity_level",
+    "is_exam",
+    "is_mid_sem",
+    "is_end_sem",
+    "is_pre_exam",
+    "is_post_exam",
+    "fc_academic_occupancy",
+    "fc_lecture_occupancy",
+    "fc_library_occupancy",
+    "fc_hostel_occupancy",
+    "fc_mess_occupancy",
+    "fc_temperature_c",
+    "fc_humidity_pct",
+    "fc_wind_speed_mps"
+  ],
+  "weather_noise_sd": {
+    "temperature_c": 1.5,
+    "humidity_pct": 5.0,
+    "wind_speed_mps": 0.8
+  },
+  "activity_map": null,
+  "split": {
+    "train": [
+      "2013-08-31 00:00:00",
+      "2016-09-12 00:00:00"
+    ],
+    "val": [
+      "2016-09-13 01:00:00",
+      "2017-05-08 10:00:00"
+    ],
+    "test": [
+      "2017-05-09 11:00:00",
+      "2017-12-30 21:00:00"
+    ]
+  }
+}

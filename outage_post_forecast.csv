@@ -1,0 +1,7 @@
+,Overall MAE,Overall RMSE,Peak MAE,Peak RMSE,Off-Peak MAE,Off-Peak RMSE
+ANN (clean history),46.544,57.402,60.961,68.86,36.246,47.557
+ANN (interp-reconstructed),44.772,55.206,56.115,64.47,36.67,47.495
+ANN (prev-week-reconstructed),46.539,57.399,60.846,68.811,36.32,47.602
+Prev-Day baseline (recon),349.501,374.232,482.97,485.361,254.167,267.986
+Prev-Week baseline (recon),42.008,52.83,48.255,60.306,37.546,46.764
+Persistence (recon),374.045,437.219,581.91,583.371,225.57,290.89

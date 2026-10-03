@@ -1,0 +1,10 @@
+__pycache__/
+AutogluonModels/
+iiitd_data/
+*.zip
+*.xlsx
+.DS_Store
+__MACOSX/
+op/fig_*.png
+*.png
+*.jpg
